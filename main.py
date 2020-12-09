@@ -8,11 +8,11 @@ from datetime import datetime
 from flask_wtf import FlaskForm, Form
 from wtforms import StringField, SubmitField, FileField
 from wtforms.validators import DataRequired, Length, ValidationError, Required
-
 from config import db
 
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret'
+app.config['SECRET_KEY'] = 'secret!'
 
 bootstrap = Bootstrap(app)
 moment = Moment(app)
@@ -28,7 +28,7 @@ class NameForm(FlaskForm):
 
 
 class UploadForm(Form):
-    name = StringField('Escreva seu Tópico:', validators=[DataRequired(), Length(1, 128)])
+    text = StringField('Escreva seu Tópico:', validators=[DataRequired(), Length(1, 300)])
     image_file = FileField('Arquivo de Imagem')
     submit = SubmitField('Enviar')
 
@@ -37,16 +37,6 @@ class UploadForm(Form):
             raise ValidationError('Extensão inválida')
         if imghdr.what(field.data) != '.jpeg':
             raise ValidationError('Formato inválido')
-
-
-@app.errorhandler(404)
-def page_not_found(e):
-    return render_template('404.html'), 404
-
-
-@app.errorhandler(500)
-def server_error(e):
-    return render_template('500.html'), 500
 
 
 @app.route('/')
@@ -62,12 +52,24 @@ def index():
 @app.route('/topic', methods=['GET', 'POST'])
 def topic():
     image = None
+    text = None
     form = UploadForm()
     if form.validate_on_submit():
         image = 'uploads/' + form.image_file.data.filename
         # app.static_folder é o path que o flask olha para onde irá renderizar as imagens na aplicação
         form.image_file.data.save(os.path.join(app.static_folder, image))
-    return render_template('topic.html', form=form, image=image)
+        text = form.text.data
+    return render_template('topic.html', form=form, image=image, text=text)
+
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+
+@app.errorhandler(500)
+def server_error(e):
+    return render_template('500.html'), 500
 
 
 @app.before_first_request

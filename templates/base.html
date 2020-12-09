@@ -1,5 +1,4 @@
 {% extends "bootstrap/base.html" %}
-
 {% block title %}Flask{% endblock %}
 
 {% block navbar %}
@@ -7,7 +6,7 @@
     <div class="container">
         <div class="navbar-collapse collapse">
             <a class="navbar-brand" href="{{ url_for('index') }}"> Home </a>
-            <a class="navbar-brand" href="{{ url_for('topic') }}"> Tópico </a>
+            <a class="navbar-brand" href="{{ url_for('topic') }}"> Tópicos </a>
         </div>
     </div>
 </div>
@@ -21,7 +20,6 @@
         {{ message }}
     </div>
     {% endfor %}
-
     {% block page_content %}{% endblock %}
 </div>
 {% endblock %}

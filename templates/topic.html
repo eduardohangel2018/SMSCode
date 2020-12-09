@@ -10,5 +10,14 @@
     {% if image %}
         <img src="{{ url_for('static', filename=image) }}">
     {% endif %}
+    <div>
+        <h3>Tópico:
+            {% if text %}
+            {{ text }}
+            {% else %}
+            Sem conteúdo
+            {% endif %}!
+        </h3>
+    </div>
 </div>
 {% endblock %}
