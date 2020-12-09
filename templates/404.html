@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block title %} Flask - Page Not Found {% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <h2> Not Found </h2>
+    <p> <a href="{{ url_for('index') }}"> Retornar a Home </a></p>
+</div>
+{% endblock %}
