@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %} Login {% endblock %}
+
+{% block page_content %}
+    <h2> Pagina Protegida </h2>
+    <p> Você está Logado como <b>{{ current_user.username }}</b></p>
+{% endblock %}

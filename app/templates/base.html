@@ -1,0 +1,37 @@
+{% extends "bootstrap/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %} Flask {% endblock %}
+
+{% block navbar %}
+<nav class="navbar navbar-inverse" role="navigation">
+    <div class="container">
+        <ul class="nav navbar-nv">
+            <li><a class="navbar-brand" href="{{ url_for('index') }}"> Home </a></li>
+            <li><a class="navbar-brand" href="{{ url_for('topic') }}"> Tópicos </a></li>
+            <li><a class="navbar-brand" href="{{ url_for('protected') }}"> Protegido </a></li>
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+            <li>
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('logout') }}">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}">Login</a>
+                {% endif %}
+            </li>
+        </ul>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        {% block page_content %}{% endblock %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{{ moment.include_moment() }}
+{{ moment.locale('en') }}
+{% endblock %}
