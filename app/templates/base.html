@@ -7,16 +7,16 @@
 <nav class="navbar navbar-inverse" role="navigation">
     <div class="container">
         <ul class="nav navbar-nv">
-            <li><a class="navbar-brand" href="{{ url_for('index') }}"> Home </a></li>
-            <li><a class="navbar-brand" href="{{ url_for('topic') }}"> Tópicos </a></li>
-            <li><a class="navbar-brand" href="{{ url_for('protected') }}"> Protegido </a></li>
+            <li><a class="navbar-brand" href="{{ url_for('main.index') }}"> Home </a></li>
+            <li><a class="navbar-brand" href="{{ url_for('main.topic') }}"> Tópicos </a></li>
+            <li><a class="navbar-brand" href="{{ url_for('main.protected') }}"> Protegido </a></li>
         </ul>
         <ul class="nav navbar-nav navbar-right">
             <li>
                 {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('logout') }}">Logout</a>
+                    <a href="{{ url_for('main.logout') }}">Logout</a>
                 {% else %}
-                    <a href="{{ url_for('login') }}">Login</a>
+                    <a href="{{ url_for('main.login') }}">Login</a>
                 {% endif %}
             </li>
         </ul>
@@ -32,6 +32,4 @@
 
 {% block scripts %}
 {{ super() }}
-{{ moment.include_moment() }}
-{{ moment.locale('en') }}
 {% endblock %}

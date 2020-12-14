@@ -1,0 +1,5 @@
+venv/
+env/
+smscode.sqlite3
+code.sqlite3
+db.sqlite3
