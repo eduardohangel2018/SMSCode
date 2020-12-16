@@ -1,10 +1,23 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %} Perfil {% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <h2> {{ user.username }} </h2>
+    {% if user.name or user.location %}
+    <p>
+        {% if user.name %}
+        {{ user.name }}
+        {% endif %}
+        {% if user.location %}
+            From <a href="http://maps.google.com/?q={{ user.location }}">{{ user.location }}</a>
+        {% endif %}
+    </p>
+    {% endif %}
+    {% if user.about_me %}
+    <p> {{ user.about_me }} </p>
+    {% endif %}
+    <p> Membro desde {{ moment(user.member_since).format('L') }}. Última Visualização {{ moment(user.last_seen).fromNow() }}.</p>
+</div>
+{% endblock %}

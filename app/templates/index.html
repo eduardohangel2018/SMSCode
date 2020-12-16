@@ -4,5 +4,7 @@
 
 {% block page_content %}
     <h2> Home Page </h2>
+    <br>
     <p>{% if not current_user.is_authenticated %} não {% endif %} Logado </p>
+    <p> Olá, <b>{{ current_user.name }}</b></p>
 {% endblock %}

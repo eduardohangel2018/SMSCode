@@ -1,7 +1,10 @@
 import imghdr
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, FileField, PasswordField, BooleanField
-from wtforms.validators import DataRequired, Length, ValidationError
+from wtforms.validators import DataRequired, Length, ValidationError, EqualTo
+from app.models import User
+from datetime import datetime
+from flask_moment import Moment
 
 
 class LoginForm(FlaskForm):
@@ -14,6 +17,27 @@ class LoginForm(FlaskForm):
 class NameForm(FlaskForm):
     name = StringField('Digite seu nome:', validators=[DataRequired(), Length(1, 16)])
     submit = SubmitField('Enviar')
+
+
+class RegistrationForm(FlaskForm):
+    name = StringField('Nome Completo', validators=[DataRequired()])
+    username = StringField('Usuário', validators=[DataRequired()])
+    password = PasswordField('Senha', validators=[DataRequired(), EqualTo('password2',
+                                                                          message='As senhas não conferem')])
+    password2 = PasswordField('Digite Novamente', validators=[DataRequired()])
+    submit = SubmitField('Cadastrar')
+
+    def validate_username(self, field):
+        if User.query.filter_by(username=field.data).first():
+            raise ValidationError('Usuário já foi utilizado')
+
+
+class ChangePasswordForm(FlaskForm):
+    old_password = PasswordField('Senha Antiga', validators=[DataRequired()])
+    password = PasswordField('Nova senha', validators=[DataRequired(), EqualTo('password2',
+                                                                               message='As senhas não conferem')])
+    password2 = PasswordField('Confirme sua Senha', validators=[DataRequired()])
+    submit = SubmitField('Atualizar Senha')
 
 
 class UploadForm(FlaskForm):

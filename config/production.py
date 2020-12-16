@@ -1,5 +1,7 @@
 import os
-ADMINS = ['example@example.com']
+from flask_sqlalchemy import SQLAlchemy
+
+# ADMINS = ['example@example.com']
 DEBUG = False
 SECRET_KEY = 'secret$'
 

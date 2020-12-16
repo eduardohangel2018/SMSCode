@@ -1,8 +1,8 @@
 import os
-from flask import render_template, redirect, url_for, app, request
-from flask_login import LoginManager, login_user, logout_user, UserMixin, login_required
-from app.main.forms import UploadForm, LoginForm
-from ..models import User
+from flask import render_template, redirect, url_for, app, request, flash
+from flask_login import LoginManager, login_user, logout_user, UserMixin, login_required, current_user
+from app.main.forms import UploadForm, LoginForm, RegistrationForm
+from ..models import db, User
 from . import main
 
 
@@ -12,6 +12,7 @@ def index():
 
 
 @main.route('/topic', methods=['GET', 'POST'])
+@login_required
 def topic():
     image = None
     text = None
@@ -48,6 +49,34 @@ def logout():
 @login_required
 def protected():
     return render_template('protected.html')
+
+
+@main.route('/register', methods=['GET', 'POST'])
+def register():
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        user = User.register(name=form.name.data,
+                             username=form.username.data,
+                             password=form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash('Cadastro realizado com Sucesso')
+        return redirect(url_for('main.login'))
+    return render_template('register.html', form=form)
+
+
+@main.route('/user/<username>')
+def user(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    return render_template('user.html', user=user)
+
+
+# @main.before_app_request
+# def before_request():
+#     if current_user.is_authenticated:
+#         current_user.ping()
+#         if not current_user.confirmed and request.endpoint != 'main' and request.blueprint != 'static':
+#             return redirect(url_for('main.unconfirmed'))
 
 
 @main.errorhandler(404)
