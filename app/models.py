@@ -40,7 +40,7 @@ class Role(db.Model):
         }
         default_role = 'User'
         for r in roles:
-            role = Role.query.filter_by(name=r).fisrt()
+            role = Role.query.filter_by(name=r).first()
             if role is None:
                 role = Role(name=r)
             role.reset_permissions()
@@ -64,6 +64,9 @@ class Role(db.Model):
     def has_permission(self, perm):
         return self.permissions & perm == perm
 
+    def __repr__(self):
+        return '<Role %r>' % self.name
+
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -77,14 +80,15 @@ class User(UserMixin, db.Model):
     about_me = db.Column(db.String(128))
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
+    topics = db.relationship('Topic', backref='author', lazy='dynamic')
 
-    # def __init__(self, **kwargs):
-    #     super(User, self).__init__(**kwargs)
-    #     if self.role is None:
-    #         if self.username == current_app.config['FLASK_ADMIN']:
-    #             self.role = Role.query.filter_by(name='Administrator').first()
-    #         if self.role is None:
-    #             self.role = Role.query.filter_by(default=True).first()
+    def __init__(self, **kwargs):
+        super(User, self).__init__(**kwargs)
+        if self.role is None:
+            if self.username == current_app.config['FLASK_ADMIN']:
+                self.role = Role.query.filter_by(username='admin').first()
+            if self.role is None:
+                self.role = Role.query.filter_by(default=True).first()
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -96,6 +100,9 @@ class User(UserMixin, db.Model):
     def register(name, username, password):
         user = User(name=name, username=username)
         user.set_password(password)
+        # for u in User.query.all():
+        #     if u.role is None and u.user == 'admin':
+        #         u.role = '16'
         db.session.add(user)
         db.session.commit()
         return user
@@ -110,10 +117,11 @@ class User(UserMixin, db.Model):
         db.session.commit()
         return True
 
+    # Analisa se o usuário possui permissão
     def can(self, perm):
         return self.role is not None and self.role.has_permission(perm)
 
-    def is_adm(self):
+    def is_administrator(self):
         return self.can(Permission.ADMIN)
 
     def ping(self):
@@ -129,32 +137,32 @@ class AnonymousUser(AnonymousUserMixin):
     def can(self, permissions):
         return False
 
+    def is_administrator(self):
+        return False
+
 
 lm.anonymous_user = AnonymousUser
 
 
 @lm.user_loader
-def load_user(_id):
-    return User.query.get(int(_id))
-
-
-class Comment(db.Model):
-    __tablename__ = 'comments'
-    _id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    _text = db.Column(db.String(199))
-
-    def __init__(self, _id, _text):
-        self._id = _id
-        self._text = _text
+def load_user(id):
+    return User.query.get(int(id))
 
 
 class Topic(db.Model):
     __tablename__ = 'topics'
-    _id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String(30))
-    _metadata = db.Column(db.String(199))
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    body = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
-    def __init__(self, _id, name, _metadata):
-        self._id = _id
-        self.name = name
-        self._metadata = _metadata
+
+class Comment(db.Model):
+    __tablename__ = 'comments'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    text = db.Column(db.String(199))
+
+    def __init__(self, id, text):
+        self._id = id
+        self._text = text
+

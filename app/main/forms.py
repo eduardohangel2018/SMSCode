@@ -1,8 +1,10 @@
+#!-*- conding: utf8 -*-
 import imghdr
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, FileField, PasswordField, BooleanField
+from wtforms import StringField, SubmitField, PasswordField, BooleanField, TextAreaField, SelectField
 from wtforms.validators import DataRequired, Length, ValidationError, EqualTo
-from app.models import User
+from flask_wtf.file import FileField
+from app.models import User, Role
 from datetime import datetime
 from flask_moment import Moment
 
@@ -32,6 +34,32 @@ class RegistrationForm(FlaskForm):
             raise ValidationError('Usuário já foi utilizado')
 
 
+class EditProfileForm(FlaskForm):
+    name = StringField('Nome e Sobrenome', validators=[Length(0, 64)])
+    location = StringField('Localização', validators=[Length(0, 64)])
+    about_me = TextAreaField('Sobre mim')
+    submit = SubmitField('Submit')
+
+
+class EditProfileFormAdmin(FlaskForm):
+    name = StringField('Nome Completo', validators=[Length(0, 64)])
+    username = StringField('Usuário', validators=[Length(0, 64)])
+    confirmed = BooleanField('Confirmed')
+    role = SelectField('Perfil', coerce=int)
+    location = StringField('Localização', validators=[Length(0, 64)])
+    about_me = TextAreaField('Sobre mim')
+    submit = SubmitField('Submit')
+
+    def __init__(self, user, *args, **kwargs):
+        super(EditProfileFormAdmin, self).__init__(*args, **kwargs)
+        self.role.choices = [(role.id, role.name) for role in Role.query.order_by(Role.name).all()]
+        self.user = user
+
+    def validate_username(self, field):
+        if field.data != self.user.username and User.query.filter_by(username=field.data).first():
+            raise ValidationError('Usuário já foi utilizado')
+
+
 class ChangePasswordForm(FlaskForm):
     old_password = PasswordField('Senha Antiga', validators=[DataRequired()])
     password = PasswordField('Nova senha', validators=[DataRequired(), EqualTo('password2',
@@ -40,13 +68,6 @@ class ChangePasswordForm(FlaskForm):
     submit = SubmitField('Atualizar Senha')
 
 
-class UploadForm(FlaskForm):
-    text = StringField('Escreva seu Tópico:', validators=[DataRequired(), Length(1, 300)])
-    image_file = FileField('Arquivo de Imagem')
-    submit = SubmitField('Enviar')
-
-    def validate_image_file(self, field):
-        if field.data.filename[-4:].lower() != '.jpeg':
-            raise ValidationError('Extensão inválida')
-        if imghdr.what(field.data) != '.jpeg':
-            raise ValidationError('Formato inválido')
+class TopicForm(FlaskForm):
+    body = TextAreaField('Escreva o seu Tópico:', validators=[DataRequired()])
+    submit = SubmitField('Salvar')

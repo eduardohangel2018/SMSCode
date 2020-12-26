@@ -1,28 +1,45 @@
 import os
-from flask import render_template, redirect, url_for, app, request, flash
+from flask import render_template, redirect, url_for, app, request, flash, abort, current_app
 from flask_login import LoginManager, login_user, logout_user, UserMixin, login_required, current_user
-from app.main.forms import UploadForm, LoginForm, RegistrationForm
-from ..models import db, User
+from app.main.forms import LoginForm, RegistrationForm, EditProfileForm, EditProfileFormAdmin, TopicForm
+from ..models import Role, User, Topic, Permission
 from . import main
+from .. import db
+from werkzeug.utils import secure_filename
+from ..decorators import admin_required
 
 
-@main.route('/')
+@main.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template('index.html')
+    form = TopicForm()
+    if form.validate_on_submit():
+        topic = Topic(body=form.body.data,
+                      author=current_user._get_current_object())
+        db.session.add(topic)
+        db.session.commit()
+        return redirect(url_for('.index'))
+    page = request.args.get('page', 1, type=int)
+    pagination = Topic.query.order_by(Topic.timestamp.desc()).paginate(
+        page, per_page=current_app.config['FLASK_TOPICS_PER_PAGE'], error_out=False)
+    topics = pagination.items
+    return render_template('index.html', form=form, topics=topics, pagination=pagination)
 
 
 @main.route('/topic', methods=['GET', 'POST'])
 @login_required
 def topic():
-    image = None
-    text = None
-    form = UploadForm()
+    form = TopicForm()
     if form.validate_on_submit():
-        image = 'uploads/' + form.image_file.data.filename
-        # app.static_folder é o path que o flask olha para onde irá renderizar as imagens na aplicação
-        form.image_file.data.save(os.path.join(app.static_folder, image))
-        text = form.text.data
-    return render_template('topic.html', form=form, image=image, text=text)
+        topic = Topic(body=form.body.data,
+                      author=current_user._get_current_object())
+        db.session.add(topic)
+        db.session.commit()
+        return redirect(url_for('.topic'))
+    page = request.args.get('page', 1, type=int)
+    pagination = Topic.query.order_by(Topic.timestamp.desc()).paginate(
+        page, per_page=current_app.config['FLASK_TOPICS_PER_PAGE'], error_out=False)
+    topics = pagination.items
+    return render_template('topics.html', form=form, topics=topics, pagination=pagination)
 
 
 @main.route('/login', methods=['GET', 'POST'])
@@ -42,13 +59,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    return render_template('index.html')
-
-
-@main.route('/protected')
-@login_required
-def protected():
-    return render_template('protected.html')
+    return redirect(url_for('main.index'))
 
 
 @main.route('/register', methods=['GET', 'POST'])
@@ -68,15 +79,54 @@ def register():
 @main.route('/user/<username>')
 def user(username):
     user = User.query.filter_by(username=username).first_or_404()
-    return render_template('user.html', user=user)
+    page = request.args.get('page', 1, type=int)
+    pagination = user.topics.order_by(Topic.timestamp.desc()).paginate(
+        page, per_page=current_app.config['FLASK_TOPICS_PER_PAGE'], error_out=False)
+    topics = pagination.items
+    return render_template('user.html', user=user, topics=topics, pagination=pagination)
 
 
-# @main.before_app_request
-# def before_request():
-#     if current_user.is_authenticated:
-#         current_user.ping()
-#         if not current_user.confirmed and request.endpoint != 'main' and request.blueprint != 'static':
-#             return redirect(url_for('main.unconfirmed'))
+@main.route('/edit_profile', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    form = EditProfileForm()
+    if form.validate_on_submit():
+        current_user.name = form.name.data
+        current_user.location = form.location.data
+        current_user.about_me = form.about_me.data
+        db.session.commit()
+        flash('Seu perfil foi Atualizado')
+        return redirect(url_for('.user', username=current_user.username))
+    form.name.data = current_user.name
+    form.location.data = current_user.location
+    form.about_me.data = current_user.about_me
+    return render_template('edit_profile.html', form=form)
+
+
+# @main.route('/edit/profile/<int:id>', methods=['GET', 'POST'])
+# @login_required
+# @admin_required
+# def edit_profile_admin(id):
+#     user = User.query.get_or_404(id)
+#     form = EditProfileFormAdmin(user=user)
+#     if form.validate_on_submit():
+#         user.name = form.name.data
+#         user.username = form.username.data
+#         user.confirmed = form.confirmed.data
+#         user.role = Role.query.get(form.role.data)
+#         user.location = form.location.data
+#         user.about_me = form.about_me.data
+#         db.session.add(user)
+#         db.session.commit()
+#         flash('O Perfil foi atualizado')
+#         return redirect(url_for('.user', username=user.username))
+#     form.name.data = user.name
+#     form.username.data = user.username
+#     form.confirmed.data = user.confirmed
+#     form.role.data = user.role_id
+#     form.location.data = user.location
+#     form.about_me.data = user.about_me
+#     return render_template('edit_profile.html', form=form, user=user)
 
 
 @main.errorhandler(404)
