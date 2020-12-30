@@ -7,6 +7,7 @@ from flask_wtf.file import FileField
 from app.models import User, Role
 from datetime import datetime
 from flask_moment import Moment
+from flask_pagedown.fields import PageDownField
 
 
 class LoginForm(FlaskForm):
@@ -69,5 +70,5 @@ class ChangePasswordForm(FlaskForm):
 
 
 class TopicForm(FlaskForm):
-    body = TextAreaField('Escreva o seu Tópico:', validators=[DataRequired()])
+    body = PageDownField('Escreva o seu Tópico:', validators=[DataRequired()])
     submit = SubmitField('Salvar')

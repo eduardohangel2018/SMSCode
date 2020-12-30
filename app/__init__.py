@@ -4,6 +4,7 @@ from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from config import config
+from flask_pagedown import PageDown
 
 
 # Extensions
@@ -12,6 +13,7 @@ db = SQLAlchemy()
 lm = LoginManager()
 lm.login_view = 'main.login'
 moment = Moment()
+pageDown = PageDown()
 
 
 def create_app(config_name):
@@ -25,6 +27,7 @@ def create_app(config_name):
     db.init_app(app)
     lm.init_app(app)
     moment.init_app(app)
+    pageDown.init_app(app)
 
     # Blueprints
     from .main import main as main_blueprint

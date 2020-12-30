@@ -25,21 +25,43 @@ def index():
     return render_template('index.html', form=form, topics=topics, pagination=pagination)
 
 
-@main.route('/topic', methods=['GET', 'POST'])
+@main.route('/topics', methods=['GET', 'POST'])
 @login_required
-def topic():
+def _topic():
     form = TopicForm()
     if form.validate_on_submit():
         topic = Topic(body=form.body.data,
                       author=current_user._get_current_object())
         db.session.add(topic)
         db.session.commit()
-        return redirect(url_for('.topic'))
+        return redirect(url_for('main.topics'))
     page = request.args.get('page', 1, type=int)
     pagination = Topic.query.order_by(Topic.timestamp.desc()).paginate(
         page, per_page=current_app.config['FLASK_TOPICS_PER_PAGE'], error_out=False)
     topics = pagination.items
     return render_template('topics.html', form=form, topics=topics, pagination=pagination)
+
+
+@main.route('/topic/<int:id>')
+def topic(id):
+    topic = Topic.query.get_or_404(id)
+    return render_template('topic.html', topics=[topic])
+
+
+@main.route('/edit_topic/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_topic(id):
+    topic = Topic.query.get_or_404(id)
+    if current_user != topic.author:
+        abort(403)
+    form = TopicForm()
+    if form.validate_on_submit():
+        topic.body = form.body.data
+        db.session.add(topic)
+        db.session.commit()
+        return redirect(url_for('main.topic', id=topic.id))
+    form.body.data = topic.body
+    return render_template('edit_topic.html', form=form)
 
 
 @main.route('/login', methods=['GET', 'POST'])
@@ -103,7 +125,7 @@ def edit_profile():
     return render_template('edit_profile.html', form=form)
 
 
-# @main.route('/edit/profile/<int:id>', methods=['GET', 'POST'])
+# @main.route('/edit_profile/<int:id>', methods=['GET', 'POST'])
 # @login_required
 # @admin_required
 # def edit_profile_admin(id):

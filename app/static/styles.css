@@ -21,17 +21,45 @@ div.topic-date {
 ul.topic-author {
     font-weight: bold;
 }
-di.topic-thumb {
+div-topic-thumb {
     position: absolute;
 }
 div-topic-content {
     margin-left: 48px;
     min-height: 48px;
 }
+div.topic-footer {
+    text-align: right;
+}
 div.pagination {
     width: 100%;
     text-align: right;
     padding: 0px;
     margin: 0px;
+}
+div.flask-pagedown-preview {
+    text-align: right;
+}
+    margin: 10px 0px 10px 0px;
+    border: 1px solid #e0e0e0;
+    padding: 4px;
+}
+div.flask-pagedown-preview h1 {
+    font-size: 140%;
+}
+div.flask-pagedown-preview h2 {
+    font-size: 130%;
+}
+div.flask-pagedown-preview h3 {
+    font-size: 120%;
+}
+.topic-body h1 {
+    font-size: 140%;
+}
+.topic-body h2 {
+    font-size: 130%;
+}
+.topic-body h3 {
+    font-size: 120%;
 }
 

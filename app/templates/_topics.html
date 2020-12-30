@@ -1,10 +1,38 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+{% block page_content %}
+<ul class="topics">
+    {% for topic in topics %}
+    <li class="topic">
+        <div class="topic-content">
+            <div class="topic-date">{{ moment(topic.timestamp).fromNow() }}</div>
+            <div class="topic-author">
+                <a href=" {{ url_for('.user', username=topic.author.username) }} ">
+                    {{ topic.author.username }}
+                </a>
+            </div>
+            <div class="topic-body">
+                    {% if topic.body_html %}
+                        {{ topic.body_html | safe }}
+                    {% else %}
+                        {{ topic.body }}
+                    {% endif %}
+            </div>
+            <div class="topic-footer">
+                    {% if current_user == topic.author %}
+                <a href="{{ url_for('.edit_topic', id=topic.id) }}">
+                    <span class="label label-primary">Editar</span>
+                </a>
+                    {% endif %}
+            </div>
+            <div class="topic-footer">
+                <a href="{{ url_for('main.topic', id=topic.id) }}">
+                    <span class="label label-default">Tópico</span>
+                </a>
+            </div>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+
+{% endblock %}
+
+

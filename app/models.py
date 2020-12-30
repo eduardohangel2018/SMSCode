@@ -5,6 +5,8 @@ from itsdangerous import Serializer
 from . import db, lm
 from flask_login import UserMixin, AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from markdown import markdown
+import bleach
 
 
 class Permission:
@@ -153,8 +155,20 @@ class Topic(db.Model):
     __tablename__ = 'topics'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     body = db.Column(db.Text)
+    body_html = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+    # Funcao é chamada com o método 'set' toda vez que o campo body é definido com um novo valor
+    @staticmethod
+    def on_changed_body(target, value, oldvalue, initiator):
+        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'blockquote', 'code',
+                        'em', 'i', 'li', 'ol', 'pre', 'strong', 'ul',
+                        'h1', 'h2', 'h3', 'p', '#']
+        target.body_html = bleach.linkify(bleach.clean(
+            markdown(value, output_format='html'),
+            tags=allowed_tags, strip=True))
+        db.event.listen(Topic.body, 'set', Topic.on_changed_body)
 
 
 class Comment(db.Model):
@@ -165,4 +179,3 @@ class Comment(db.Model):
     def __init__(self, id, text):
         self._id = id
         self._text = text
-
