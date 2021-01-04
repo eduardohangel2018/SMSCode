@@ -1,7 +1,8 @@
 import os
 from flask import render_template, redirect, url_for, app, request, flash, abort, current_app
 from flask_login import LoginManager, login_user, logout_user, UserMixin, login_required, current_user
-from app.main.forms import LoginForm, RegistrationForm, EditProfileForm, EditProfileFormAdmin, TopicForm
+from app.main.forms import LoginForm, RegistrationForm, EditProfileForm, EditProfileFormAdmin, TopicForm, \
+    ChangePasswordForm
 from ..models import Role, User, Topic, Permission
 from . import main
 from .. import db
@@ -64,33 +65,15 @@ def edit_topic(id):
     return render_template('edit_topic.html', form=form)
 
 
-@main.route('/login', methods=['GET', 'POST'])
-def login():
-    form = LoginForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
-        print(user)
-        if user is None or not user.verify_password(form.password.data):
-            return redirect(url_for('main.login', **request.args))
-        login_user(user, form.remember_me.data)
-        return redirect(request.args.get('next') or url_for('main.index'))
-    return render_template('login.html', form=form)
-
-
-@main.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('main.index'))
-
-
 @main.route('/register', methods=['GET', 'POST'])
 def register():
     form = RegistrationForm()
     if form.validate_on_submit():
         user = User.register(name=form.name.data,
                              username=form.username.data,
-                             password=form.password.data)
+                             password=form.password.data,)
+        r = Role(name='User')
+        r.add_permission(Permission.ADMIN)
         db.session.add(user)
         db.session.commit()
         flash('Cadastro realizado com Sucesso')
@@ -125,37 +108,62 @@ def edit_profile():
     return render_template('edit_profile.html', form=form)
 
 
-# @main.route('/edit_profile/<int:id>', methods=['GET', 'POST'])
-# @login_required
-# @admin_required
-# def edit_profile_admin(id):
-#     user = User.query.get_or_404(id)
-#     form = EditProfileFormAdmin(user=user)
-#     if form.validate_on_submit():
-#         user.name = form.name.data
-#         user.username = form.username.data
-#         user.confirmed = form.confirmed.data
-#         user.role = Role.query.get(form.role.data)
-#         user.location = form.location.data
-#         user.about_me = form.about_me.data
-#         db.session.add(user)
-#         db.session.commit()
-#         flash('O Perfil foi atualizado')
-#         return redirect(url_for('.user', username=user.username))
-#     form.name.data = user.name
-#     form.username.data = user.username
-#     form.confirmed.data = user.confirmed
-#     form.role.data = user.role_id
-#     form.location.data = user.location
-#     form.about_me.data = user.about_me
-#     return render_template('edit_profile.html', form=form, user=user)
+@main.route('/edit_profile/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_profile_admin(id):
+    user = User.query.get_or_404(id)
+    form = EditProfileFormAdmin(user=user)
+    if form.validate_on_submit():
+        user.name = form.name.data
+        user.username = form.username.data
+        user.confirmed = form.confirmed.data
+        user.role = Role.query.get(form.role.data)
+        user.location = form.location.data
+        user.about_me = form.about_me.data
+        db.session.add(user)
+        db.session.commit()
+        flash('O Perfil foi atualizado')
+        return redirect(url_for('.user', form=form, username=user.username))
+    form.name.data = user.name
+    form.username.data = user.username
+    form.confirmed.data = user.confirmed
+    form.role.data = user.role_id
+    form.location.data = user.location
+    form.about_me.data = user.about_me
+    return render_template('edit_profile.html', form=form, user=user)
 
 
-@main.errorhandler(404)
-def page_not_found(e):
-    return render_template('404.html'), 404
+@main.route('/change_password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    form = ChangePasswordForm()
+    if form.validate_on_submit():
+        if current_user.verify_password(form.old_password.data):
+            current_user.password = form.password.data
+            current_user.password2 = form.password2.data
+            flash('Sua senha foi alterada com sucesso')
+            return redirect(url_for('main.index'))
+        else:
+            flash('Senha Inválida')
+        return render_template('change_password.html', form=form)
 
 
-@main.errorhandler(500)
-def server_error(e):
-    return render_template('500.html'), 500
+@main.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        print(user)
+        print(user.role)
+        if user is None or not user.verify_password(form.password.data):
+            return redirect(url_for('main.login', **request.args))
+        login_user(user, form.remember_me.data)
+        return redirect(request.args.get('next') or url_for('main.index'))
+    return render_template('login.html', form=form)
+
+
+@main.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('main.index'))

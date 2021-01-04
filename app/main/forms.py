@@ -1,12 +1,8 @@
 #!-*- conding: utf8 -*-
-import imghdr
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, BooleanField, TextAreaField, SelectField
-from wtforms.validators import DataRequired, Length, ValidationError, EqualTo
-from flask_wtf.file import FileField
-from app.models import User, Role
-from datetime import datetime
-from flask_moment import Moment
+from wtforms.validators import DataRequired, Length, ValidationError, EqualTo, Regexp
+from ..models import User, Role
 from flask_pagedown.fields import PageDownField
 
 
@@ -43,8 +39,11 @@ class EditProfileForm(FlaskForm):
 
 
 class EditProfileFormAdmin(FlaskForm):
-    name = StringField('Nome Completo', validators=[Length(0, 64)])
-    username = StringField('Usuário', validators=[Length(0, 64)])
+    name = StringField('Nome e Sobrenome', validators=[Length(0, 64)])
+    username = StringField('Usuário', validators=[
+        DataRequired(), Length(0, 64),
+        Regexp('^[A-Za-z][A-Za-z0-9_.]*$', 0,
+               'Usuários devem conter apenas letras e números')])
     confirmed = BooleanField('Confirmed')
     role = SelectField('Perfil', coerce=int)
     location = StringField('Localização', validators=[Length(0, 64)])
@@ -53,7 +52,8 @@ class EditProfileFormAdmin(FlaskForm):
 
     def __init__(self, user, *args, **kwargs):
         super(EditProfileFormAdmin, self).__init__(*args, **kwargs)
-        self.role.choices = [(role.id, role.name) for role in Role.query.order_by(Role.name).all()]
+        self.role.choices = [(role.id, role.name)
+                             for role in Role.query.order_by(Role.name).all()]
         self.user = user
 
     def validate_username(self, field):

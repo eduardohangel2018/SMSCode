@@ -1,7 +1,6 @@
 from _datetime import datetime
 from coverage import data
 from flask import Flask, current_app
-from itsdangerous import Serializer
 from . import db, lm
 from flask_login import UserMixin, AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -20,8 +19,8 @@ class Permission:
 class Role(db.Model):
     __tablename__ = 'roles'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String(64))
-    default = db.Column(db.Boolean, default=False)
+    name = db.Column(db.String(64), unique=True)
+    default = db.Column(db.Boolean, default=False, index=True)
     permissions = db.Column(db.Integer)
     users = db.relationship('User', backref='role', lazy='dynamic')
 
@@ -48,9 +47,9 @@ class Role(db.Model):
             role.reset_permissions()
             for perm in roles[r]:
                 role.add_permission(perm)
-                role.default = (role.name == default_role)
-                db.session.add(role)
-            db.session.commit()
+            role.default = (role.name == default_role)
+            db.session.add(role)
+        db.session.commit()
 
     def add_permission(self, perm):
         if not self.has_permission(perm):
@@ -77,6 +76,7 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(64))
     email = db.Column(db.String(32))
     password_hash = db.Column(db.String(128))
+    confirmed = db.Column(db.Boolean, default=False)
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     location = db.Column(db.String(64))
     about_me = db.Column(db.String(128))
@@ -88,7 +88,7 @@ class User(UserMixin, db.Model):
         super(User, self).__init__(**kwargs)
         if self.role is None:
             if self.username == current_app.config['FLASK_ADMIN']:
-                self.role = Role.query.filter_by(username='admin').first()
+                self.role = Role.query.filter_by(name='master').first()
             if self.role is None:
                 self.role = Role.query.filter_by(default=True).first()
 
@@ -102,15 +102,12 @@ class User(UserMixin, db.Model):
     def register(name, username, password):
         user = User(name=name, username=username)
         user.set_password(password)
-        # for u in User.query.all():
-        #     if u.role is None and u.user == 'admin':
-        #         u.role = '16'
         db.session.add(user)
         db.session.commit()
         return user
 
     @staticmethod
-    def reset_password(password, new_password):
+    def reset_password(new_password):
         user = User.query.get(data.get('reset'))
         if user is None:
             return False
@@ -119,33 +116,23 @@ class User(UserMixin, db.Model):
         db.session.commit()
         return True
 
-    # Analisa se o usuário possui permissão
     def can(self, perm):
         return self.role is not None and self.role.has_permission(perm)
 
     def is_administrator(self):
         return self.can(Permission.ADMIN)
 
+    def __repr__(self):
+        return '<User %r>' % self.username
+
     def ping(self):
         self.last_seen = datetime.utcnow()
         db.session.add(self)
         db.session.commit()
 
-    def __repr__(self):
-        return '<User %r>' % self.username
 
-
-class AnonymousUser(AnonymousUserMixin):
-    def can(self, permissions):
-        return False
-
-    def is_administrator(self):
-        return False
-
-
-lm.anonymous_user = AnonymousUser
-
-
+# O decorador é usado para registrar a função Flask-Login
+# É chamada quando precisa de informações sobre o usuário logado.
 @lm.user_loader
 def load_user(id):
     return User.query.get(int(id))
@@ -168,7 +155,9 @@ class Topic(db.Model):
         target.body_html = bleach.linkify(bleach.clean(
             markdown(value, output_format='html'),
             tags=allowed_tags, strip=True))
-        db.event.listen(Topic.body, 'set', Topic.on_changed_body)
+
+
+db.event.listen(Topic.body, 'set', Topic.on_changed_body)
 
 
 class Comment(db.Model):

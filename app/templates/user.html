@@ -25,13 +25,11 @@
     <p>
         <a class="btn btn-default" href="{{ url_for('.edit_profile') }}">Editar Perfil</a>
     </p>
-        {% endif %}
-        {% if current_user.is_administrator() %}
     <p>
         <a class="btn btn-danger" href="{{ url_for('.edit_profile_admin', id=user.id) }}"> Editar Admin </a>
     </p>
-        {% endif %}
     </div>
+        {% endif %}
 </div>
 
 <h3> Tópicos criados por: {{ user.username }}</h3>

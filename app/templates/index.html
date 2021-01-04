@@ -12,8 +12,8 @@
 <div>
     {{ wtf.quick_form(form) }}
 </div>
-{% include '_topics.html' %}
-{% if pagination %}
+    {% include '_topics.html' %}
+    {% if pagination %}
 <div class="pagination">
     {{ macros.pagination_widget(pagination, '.index') }}
 </div>
