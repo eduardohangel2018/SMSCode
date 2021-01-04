@@ -9,7 +9,7 @@ class Config:
     SECRET_KEY = 'secret$'
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    FLASK_ADMIN_USER = 'Flask Admin <master>'
+    FLASK_ADMIN_USER = 'Flask Admin <ADMIN>'
     FLASK_ADMIN = os.environ.get('FLASK_ADMIN')
     FLASK_TOPICS_PER_PAGE = 10
 

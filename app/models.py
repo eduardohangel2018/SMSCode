@@ -88,7 +88,7 @@ class User(UserMixin, db.Model):
         super(User, self).__init__(**kwargs)
         if self.role is None:
             if self.username == current_app.config['FLASK_ADMIN']:
-                self.role = Role.query.filter_by(name='master').first()
+                self.role = Role.query.filter_by(name='ADMIN').first()
             if self.role is None:
                 self.role = Role.query.filter_by(default=True).first()
 
