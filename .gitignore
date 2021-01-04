@@ -3,3 +3,5 @@ env/
 smscode.sqlite3
 code.sqlite3
 db.sqlite3
+data-dev.sqlite3
+data2.dev.sqlite3
