@@ -15,21 +15,21 @@
             From <a href="http://maps.google.com/?q={{ user.location }}">{{ user.location }}</a>
         {% endif %}
     </p>
-            {% endif %}
+        {% endif %}
         {% if user.about_me %}
     <p> {{ user.about_me }} </p>
             {% endif %}
     <p> Membro desde {{ moment(user.member_since).format('L') }}. Última Visualização {{ moment(user.last_seen).fromNow() }}.</p>
 
+    <p>{{ user.topics.count() }} topics. {{ user.comments.count() }} comments.</p>
+
         {% if user == current_user %}
-    <p>
         <a class="btn btn-default" href="{{ url_for('.edit_profile') }}">Editar Perfil</a>
-    </p>
-    <p>
-        <a class="btn btn-danger" href="{{ url_for('.edit_profile_admin', id=user.id) }}"> Editar Admin </a>
-    </p>
-    </div>
         {% endif %}
+        {% if current_user.is_administrator() %}
+        <a class="btn btn-danger" href="{{ url_for('.edit_profile_admin', id=user.id) }}"> Editar Admin </a>
+        {% endif %}
+    </div>
 </div>
 
 <h3> Tópicos criados por: {{ user.username }}</h3>

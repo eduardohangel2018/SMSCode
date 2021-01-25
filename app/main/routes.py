@@ -2,15 +2,17 @@ import os
 from flask import render_template, redirect, url_for, app, request, flash, abort, current_app
 from flask_login import LoginManager, login_user, logout_user, UserMixin, login_required, current_user
 from app.main.forms import LoginForm, RegistrationForm, EditProfileForm, EditProfileFormAdmin, TopicForm, \
-    ChangePasswordForm
-from ..models import Role, User, Topic, Permission
+    ChangePasswordForm, CommentForm
+from ..models import Role, User, Topic, Permission, Comment
 from . import main
 from .. import db
+from flask_sqlalchemy import get_debug_queries
 from werkzeug.utils import secure_filename
-from ..decorators import admin_required
+import config
 
 
 @main.route('/', methods=['GET', 'POST'])
+@login_required
 def index():
     form = TopicForm()
     if form.validate_on_submit():
@@ -43,10 +45,25 @@ def _topic():
     return render_template('topics.html', form=form, topics=topics, pagination=pagination)
 
 
-@main.route('/topic/<int:id>')
+@main.route('/topic/<int:id>', methods=['GET', 'POST'])
 def topic(id):
     topic = Topic.query.get_or_404(id)
-    return render_template('topic.html', topics=[topic])
+    form = CommentForm()
+    if form.validate_on_submit():
+        comment = Comment(text=form.text.data,
+                          topic=topic,
+                          author=current_user._get_current_object())
+        db.session.add(comment)
+        db.session.commit()
+        flash('Seu comentário foi publicado.')
+        return redirect(url_for('main.topic', id=topic.id, page=-1))
+    page = request.args.get('page', 1, type=int)
+    if page == -1:
+        page = (topic.comments.count() - 1) // current_app.config['FLASK_COMMENTS_PER_PAGE'] + 1
+    pagination = topic.comments.order_by(Comment.timestamp.asc()).paginate(
+        page, per_page=current_app.config['FLASK_COMMENTS_PER_PAGE'], error_out=False)
+    comments = pagination.items
+    return render_template('topic.html', form=form, topics=[topic], comments=comments, pagination=pagination)
 
 
 @main.route('/edit_topic/<int:id>', methods=['GET', 'POST'])
@@ -72,8 +89,6 @@ def register():
         user = User.register(name=form.name.data,
                              username=form.username.data,
                              password=form.password.data,)
-        r = Role(name='User')
-        r.add_permission(Permission.ADMIN)
         db.session.add(user)
         db.session.commit()
         flash('Cadastro realizado com Sucesso')
@@ -167,3 +182,16 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('main.index'))
+
+
+@main.after_app_request
+def after_request(response):
+    for query in get_debug_queries():
+        # O FLASK_SLOW_QUERY_TIME trata alertas lentos do database como erros
+        if query.duration >= current_app.config['FLASK_SLOW_DB_QUERY_TIME']:
+            current_app.logger.warning(
+                'Slow query: %s\nParameters: %s\nDuration: %fs\nContext: %s\n' %
+                (query.statemet, query.parameters, query.duration, query.context))
+    return response
+
+

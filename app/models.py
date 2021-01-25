@@ -1,11 +1,15 @@
 from _datetime import datetime
 from coverage import data
-from flask import Flask, current_app
+from flask import Flask, current_app, url_for, request
+from itsdangerous import Serializer
+
 from . import db, lm
 from flask_login import UserMixin, AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from markdown import markdown
 import bleach
+
+from app.exceptions import ValidationError
 
 
 class Permission:
@@ -83,6 +87,7 @@ class User(UserMixin, db.Model):
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
     topics = db.relationship('Topic', backref='author', lazy='dynamic')
+    comments = db.relationship('Comment', backref='author', lazy='dynamic')
 
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
@@ -122,20 +127,53 @@ class User(UserMixin, db.Model):
     def is_administrator(self):
         return self.can(Permission.ADMIN)
 
-    def __repr__(self):
-        return '<User %r>' % self.username
-
     def ping(self):
         self.last_seen = datetime.utcnow()
         db.session.add(self)
         db.session.commit()
 
+    def to_json(self):
+        json_user = {
+            'url': url_for('api.get_user', id=self.id),
+            'username': self.username,
+            'member_since': self.member_since,
+            'last_seen': self.last_seen,
+            'topic_url': url_for('api.get_user_topics', id=self.id),
+            'topics.count': self.topics.count()
+        }
+        return json_user
 
-# O decorador é usado para registrar a função Flask-Login
-# É chamada quando precisa de informações sobre o usuário logado.
+    def generate_auth_token(self):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        return s.dumps({'id': self.id}).decode('utf-8')
+
+    @staticmethod
+    def verify_auth_token(token):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token)
+        except:
+            return None
+        return User.query.get(data['id'])
+
+    def __repr__(self):
+        return '<User %r>' % self.username
+
+
+class AnonymousUser(AnonymousUserMixin):
+    def can(self, permissions):
+        return False
+
+    def is_administrator(self):
+        return False
+
+
+lm.anonymous_user = AnonymousUser
+
+
 @lm.user_loader
-def load_user(id):
-    return User.query.get(int(id))
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 
 class Topic(db.Model):
@@ -145,6 +183,7 @@ class Topic(db.Model):
     body_html = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    comments = db.relationship('Comment', backref='topic', lazy='dynamic')
 
     # Funcao é chamada com o método 'set' toda vez que o campo body é definido com um novo valor
     @staticmethod
@@ -156,6 +195,24 @@ class Topic(db.Model):
             markdown(value, output_format='html'),
             tags=allowed_tags, strip=True))
 
+    @staticmethod
+    def from_json(json_topic):
+        body = json_topic.get('body')
+        if body is None or body == '':
+            raise ValidationError('Tópico não tem um body')
+        return Topic(body=body)
+
+    def to_json(self):
+        json_topic = {
+            'url': url_for('api.get_topic', id=self.id),
+            'body': self.body,
+            'body_html': self.body_html,
+            'timestamp': self.timestamp,
+            'author_url': url_for('api.get_user', id=self.author_id),
+            'comment_count': self.comments.count()
+        }
+        return json_topic
+
 
 db.event.listen(Topic.body, 'set', Topic.on_changed_body)
 
@@ -163,8 +220,21 @@ db.event.listen(Topic.body, 'set', Topic.on_changed_body)
 class Comment(db.Model):
     __tablename__ = 'comments'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    text = db.Column(db.String(199))
+    text = db.Column(db.Text)
+    text_html = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    disabled = db.Column(db.Boolean)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    topic_id = db.Column(db.Integer, db.ForeignKey('topics.id'))
 
-    def __init__(self, id, text):
-        self._id = id
-        self._text = text
+    @staticmethod
+    def on_changed_text(target, value, oldvalue, initiator):
+        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'blockquote', 'code',
+                        'em', 'i', 'li', 'ol', 'pre', 'strong', 'ul',
+                        'h1', 'h2', 'h3', 'p', '#']
+        target.text_html = bleach.linkify(bleach.clean(
+            markdown(value, output_format='html'),
+            tags=allowed_tags, strip=True))
+
+
+db.event.listen(Comment.text, 'set', Comment.on_changed_text)

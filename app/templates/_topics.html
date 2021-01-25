@@ -23,16 +23,20 @@
                 </a>
                     {% endif %}
             </div>
-            <div class="topic-footer">
+            <div>
                 <a href="{{ url_for('main.topic', id=topic.id) }}">
-                    <span class="label label-default">Tópico</span>
+                    <span class="label label-default">Abrir</span>
+                </a>
+            </div>
+            <div>
+                <a href="{{ url_for('main.topic', id=topic.id) }}#comments ">
+                    <span class="label label-primary">{{ topic.comments.count() }} Comentários</span>
                 </a>
             </div>
         </div>
     </li>
     {% endfor %}
 </ul>
-
 {% endblock %}
 
 

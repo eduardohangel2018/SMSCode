@@ -2,7 +2,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, BooleanField, TextAreaField, SelectField
 from wtforms.validators import DataRequired, Length, ValidationError, EqualTo, Regexp
-from ..models import User, Role
+from ..models import User, Role, Comment
 from flask_pagedown.fields import PageDownField
 
 
@@ -72,3 +72,8 @@ class ChangePasswordForm(FlaskForm):
 class TopicForm(FlaskForm):
     body = PageDownField('Escreva o seu Tópico:', validators=[DataRequired()])
     submit = SubmitField('Salvar')
+
+
+class CommentForm(FlaskForm):
+    text = StringField('Escreva o seu comentário', validators=[DataRequired()])
+    submit = SubmitField('Enviar')

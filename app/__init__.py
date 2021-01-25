@@ -1,11 +1,10 @@
-from flask import Flask
+from flask import Flask, Blueprint
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-from config import config
+import config
 from flask_pagedown import PageDown
-
 
 # Extensions
 bootstrap = Bootstrap()
@@ -17,24 +16,21 @@ pageDown = PageDown()
 
 
 def create_app(config_name):
-    # Application Instance
-    app = Flask(__name__)
-    app.config.from_object(config[config_name])
-    config[config_name].init_app(app)
+    print(config_name)
+    app = Flask(__name__, instance_relative_config=True)
+    app.config.from_object(config.DevelopmentConfig)
 
-    # Initialize Extensions
     bootstrap.init_app(app)
     db.init_app(app)
     lm.init_app(app)
     moment.init_app(app)
     pageDown.init_app(app)
 
-    # Blueprints
     from .main import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
-    # Flask-WTF
-    app.config['UPLOAD_EXTENSIONS'] = ['.jpg', '.jpeg', '.png', '.gif']
+    from .api import api as api_blueprint
+    app.register_blueprint(api_blueprint, url_prefix='/api/v1')
 
     return app
 
