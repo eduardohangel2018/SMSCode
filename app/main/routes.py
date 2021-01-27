@@ -1,5 +1,5 @@
 import os
-from flask import render_template, redirect, url_for, app, request, flash, abort, current_app
+from flask import render_template, redirect, url_for, app, request, flash, abort, current_app, session, flash
 from flask_login import LoginManager, login_user, logout_user, UserMixin, login_required, current_user
 from app.main.forms import LoginForm, RegistrationForm, EditProfileForm, EditProfileFormAdmin, TopicForm, \
     ChangePasswordForm, CommentForm
@@ -91,7 +91,7 @@ def register():
                              password=form.password.data,)
         db.session.add(user)
         db.session.commit()
-        flash('Cadastro realizado com Sucesso')
+        flash(request.form['username'] + 'Cadastro realizado com Sucesso')
         return redirect(url_for('main.login'))
     return render_template('register.html', form=form)
 
@@ -115,7 +115,8 @@ def edit_profile():
         current_user.location = form.location.data
         current_user.about_me = form.about_me.data
         db.session.commit()
-        flash('Seu perfil foi Atualizado')
+        if request.method == 'POST':
+            flash('Seu perfil foi Atualizado')
         return redirect(url_for('.user', username=current_user.username))
     form.name.data = current_user.name
     form.location.data = current_user.location
@@ -160,7 +161,7 @@ def change_password():
             return redirect(url_for('main.index'))
         else:
             flash('Senha Inválida')
-        return render_template('change_password.html', form=form)
+    return render_template('change_password.html', form=form)
 
 
 @main.route('/login', methods=['GET', 'POST'])

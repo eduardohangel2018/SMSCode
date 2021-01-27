@@ -4,6 +4,20 @@
 {% block title %} Edição de Perfil {% endblock %}
 
 {% block page_content %}
+
+<div class="page-header">
+    {% with message = get_flashed_messages() %}
+    {% if messages %}
+    <ul id="messages" class="list-unstyled">
+        {% for message in messages %}
+        <li class="alert alert-success">
+            {{ message }}
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+
 <div class="page-header">
     <h2>Altere seu Perfil</h2>
 </div>

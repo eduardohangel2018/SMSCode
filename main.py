@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 import os
-
 import click
 from flask_migrate import Migrate, upgrade
 from app import create_app, db
-
 
 if __name__ == '__main__':
     app = create_app(os.getenv('FLASK_CONFIG') or 'default')
@@ -12,14 +10,10 @@ if __name__ == '__main__':
 
     from app.models import User, Role, Permission, Topic, Comment
 
+
     @app.shell_context_processor
     def make_shell_context():
         return dict(db=db, User=User, Role=Role, Permission=Permission, Comment=Comment)
-
-    @app.cli.command()
-    def deploy():
-        upgrade()
-        Role.insert_roles()
 
 
     @app.cli.command()
@@ -32,15 +26,14 @@ if __name__ == '__main__':
         app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[length], profile_dir=profile_dir)
 
 
-    def deploy():
-        upgrade()
-
-        Role.insert_roles()
-
-        User.add.self()
-
-
     with app.app_context():
         db.create_all()
         port = int(os.environ.get("PORT", 8000))
-        app.run(port=port, debug=True, host='0.0.0.0')
+        app.run(port=port, debug=True)
+
+
+    @app.cli.command()
+    def deploy():
+        upgrade()
+        Role.insert_roles()
+        User.add.all()
